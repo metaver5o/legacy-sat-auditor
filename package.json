@@ -1,0 +1,23 @@
+{
+  "name": "legacy-sat-auditor",
+  "version": "1.0.0",
+  "description": "Mathematical absolute satoshi range computation engine for historical bitcoin++ workshop outputs",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "bitcoin",
+    "ordinals",
+    "runes",
+    "alkanes",
+    "numismatics"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

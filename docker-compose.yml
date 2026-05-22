@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  lineage-auditor:
+    container_name: legacy-sat-auditor
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: criptografia/legacy-sat-auditor:latest
+    ports:
+      - "5555:5555"
+    environment:
+      - NODE_ENV=development
+      - PORT=5555
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - auditor-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: satsranges-tunnel
+    profiles: [tunnel]
+    restart: unless-stopped
+    # Use the --url flag pointing to the service name and the internal port (5555)
+    command: tunnel --no-autoupdate --url http://lineage-auditor:5555
+    depends_on:
+      - lineage-auditor
+    networks:
+      - auditor-network
+
+networks:
+  auditor-network:
+    driver: bridge

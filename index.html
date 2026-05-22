@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legacy Sat & Cross-Protocol Lineage Auditor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0c;
+      --surface:   #121216;
+      --border:    #262630;
+      --amber:     #f59e0b;
+      --amber-dim: #b45309;
+      --purple:    #a855f7;
+      --cyan:      #06b6d4;
+      --green:     #10b981;
+      --red:       #ef4444;
+      --text:      #f3f4f6;
+      --muted:     #6b7280;
+      --input-bg:  #181822;
+      --radius:    8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      padding: 40px 16px;
+      min-height: 100vh;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; }
+
+    .branding {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .branding-icon { font-size: 36px; color: var(--amber); }
+    .branding h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+    .branding p { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    .row label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .search-box { display: flex; gap: 10px; }
+    .search-box input {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-box input:focus { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber-dim); }
+
+    .btn {
+      padding: 12px 24px;
+      background: var(--amber);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .metric-card {
+      background: #161620;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: opacity 0.2s, border-color 0.2s;
+    }
+    .metric-card:hover { border-color: var(--amber); }
+    .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-value { font-size: 22px; font-weight: bold; margin-top: 6px; }
+    
+    .matrix-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .matrix-table th {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .matrix-table td { padding: 14px 10px; border-bottom: 1px solid #181822; vertical-align: top; font-size: 12px; }
+    .matrix-table tr:hover { background: #15151f; }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+    .badge-legacy { background: #78350f; color: #fcd34d; border: 1px solid #92400e; }
+    .badge-ord { background: #3b0764; color: #d8b4fe; border: 1px solid #581c87; }
+    .badge-rune { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+    .badge-alkane { background: #164e63; color: #22d3ee; border: 1px solid #155e75; }
+    
+    .status-text { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .status-text.loading { color: var(--amber); }
+    .status-text.error { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="branding">
+    <div class="branding-icon">🏛️</div>
+    <div>
+      <h1>Legacy Satoshi &amp; Protocol Layer Lineage Auditor</h1>
+      <p>Mathematical absolute satoshi range computation engine for historical bitcoin++ 2022 workshop outputs</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Compute Target Wallet Assets</div>
+    <div class="row">
+      <label>Bitcoin Wallet Address (Taproot, SegWit, or Legacy)</label>
+      <div class="search-box">
+        <input type="text" id="targetAddress" placeholder="Enter address to extract pedigree and range records..." />
+        <button class="btn" id="auditBtn" onclick="executeLineageAudit()">Audit Address</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusWrapper" style="display: none; margin-bottom: 20px; padding: 0 4px;">
+    <span id="statusMessage" class="status-text">Processing...</span>
+  </div>
+
+  <div id="dashboardContainer" style="display: none;">
+    <div class="dashboard-grid">
+      <div class="metric-card" id="legacyMetricCard" onclick="applyFilter('legacy')">
+        <div class="metric-label">Legacy Sats Identified</div>
+        <div class="metric-value" style="color:var(--amber)" id="metric-legacy">0</div>
+      </div>
+      <div class="metric-card" id="ordMetricCard" onclick="applyFilter('ord')">
+        <div class="metric-label">Ordinals Inscriptions</div>
+        <div class="metric-value" style="color:var(--purple)" id="metric-ords">0</div>
+      </div>
+      <div class="metric-card" id="runeMetricCard" onclick="applyFilter('rune')">
+        <div class="metric-label">Runes Balances</div>
+        <div class="metric-value" style="color:var(--green)" id="metric-runes">0</div>
+      </div>
+      <div class="metric-card" id="alkaneMetricCard" onclick="applyFilter('alkane')">
+        <div class="metric-label">Alkanes Protostones</div>
+        <div class="metric-value" style="color:var(--cyan)" id="metric-alkanes">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Comprehensive UTXO Range &amp; Protocol Allocation Matrix</div>
+      <table class="matrix-table">
+        <thead>
+          <tr><th>UTXO Outpoint</th><th>Capacity</th><th>Ranges</th><th>Asset Allocations</th></tr>
+        </thead>
+        <tbody id="matrixTableRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let activeFilter = null;
+
+  function applyFilter(filter) {
+    activeFilter = (activeFilter === filter) ? null : filter;
+    
+    // Dim non-active cards
+    document.querySelectorAll('.metric-card').forEach(card => {
+      card.style.opacity = (activeFilter && card.id !== filter + 'MetricCard') ? '0.3' : '1';
+    });
+
+    // Filter rows
+    document.querySelectorAll('#matrixTableRows tr').forEach(row => {
+      row.style.display = (!activeFilter || row.dataset.tags.includes(filter)) ? '' : 'none';
+    });
+  }
+
+  async function executeLineageAudit() {
+    const address = document.getElementById('targetAddress').value.trim();
+    if (!address) return alert("Please enter a target.");
+
+    const btn = document.getElementById('auditBtn');
+    const dashboard = document.getElementById('dashboardContainer');
+    const statusWrapper = document.getElementById('statusWrapper');
+    
+    btn.disabled = true;
+    statusWrapper.style.display = 'block';
+    dashboard.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
+      });
+      const data = await response.json();
+
+      document.getElementById('metric-legacy').textContent = data.summary.totalLegacySats.toLocaleString();
+      document.getElementById('metric-ords').textContent = data.summary.totalOrdinals;
+      document.getElementById('metric-runes').textContent = data.summary.totalRunes;
+      document.getElementById('metric-alkanes').textContent = data.summary.totalAlkanes;
+
+      const tbody = document.getElementById('matrixTableRows');
+      tbody.innerHTML = "";
+      
+      data.utxos.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.dataset.tags = u.tags.join(',');
+        tr.innerHTML = `
+          <td style="color:var(--cyan); font-weight:bold;">${u.outpoint}</td>
+          <td>${u.value.toLocaleString()}</td>
+          <td style="color:var(--muted);">${u.ranges}</td>
+          <td>${u.tags.map(t => `<span class="badge badge-${t}">${t}</span>`).join('')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      dashboard.style.display = 'block';
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      statusWrapper.style.display = 'none';
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
