@@ -27,15 +27,10 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: satsranges-tunnel
-    profiles: [tunnel]
-    restart: unless-stopped
-    # Use the --url flag pointing to the service name and the internal port (5555)
-    command: tunnel --no-autoupdate --url http://lineage-auditor:5555
-    depends_on:
-      - lineage-auditor
+    # Overriding the command to just "sleep" so it stays alive
+    command: ["sleep", "infinity"] 
     networks:
       - auditor-network
-
 networks:
   auditor-network:
     driver: bridge
